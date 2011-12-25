@@ -1,0 +1,46 @@
+#!/bin/bash
+
+cd /home/martin/ooffice 
+
+case $1 in
+	start)
+    echo starting Xvnc server
+    nohup su martin -c 'vncserver'  &
+    sleep 5
+    echo starting OpenOffice in socket mode
+    su martin -c 'DISPLAY=127.0.0.1:1 ooffice "-accept=socket,host=localhost,port=2002;urp;" -norestore -nolockcheck' &
+    sleep 15
+    echo starting office xmlrpc server
+    nohup su martin -c './ooffice_xmlrpc_server.py' &
+  ;;
+
+	stop)
+    echo stopping office xmlrpc server
+    killall ooffice_xmlrpc_server.py
+    sleep 1
+  
+    echo stopping OpenOffice 
+    killall soffice
+    sleep 1
+    killall soffice.bin 2>/dev/null
+  
+    sleep 1
+    echo stopping Xvnc server
+    killall Xvnc
+  ;;
+
+  restart-rpc)
+    echo stopping office xmlrpc server
+    killall ooffice_xmlrpc_server.py
+    sleep 5
+
+    echo starting office xmlrpc server
+    nohup su martin -c './ooffice_xmlrpc_server.py' &
+  ;;
+
+  *)
+  	echo "Usage: $0 start|stop" >&2
+  	exit 2
+  ;;
+esac
+

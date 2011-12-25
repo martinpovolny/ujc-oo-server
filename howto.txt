@@ -1,0 +1,16 @@
+uprava vncserver "font-fixed":
+http://ubuntuforums.org/archive/index.php/t-314540.html
+
+
+(edgy)martin@ujc:~/ooffice$ vncserver 
+
+New 'ujc:1 (martin)' desktop is ujc:1
+
+Starting applications specified in /home/martin/.vnc/xstartup
+Log file is /home/martin/.vnc/ujc:1.log
+
+(edgy)martin@ujc:~/ooffice$ DISPLAY=localhost:1 ooffice "-accept=socket,host=localhost,port=2002;urp;" 
+
+apt-get install vnc4server libreoffice
+ln -s /home/martin/ooffice/ooffice-server-init-d /etc/ini.d/ooffice-server
+update-rc.d ...
