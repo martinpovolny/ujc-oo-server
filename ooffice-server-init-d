@@ -1,14 +1,14 @@
 #!/bin/bash
 
-cd /home/martin/ooffice 
+cd /home/martin/ujc-oo-server/
 
 case $1 in
 	start)
     echo starting Xvnc server
     nohup su martin -c 'vncserver'  &
     sleep 5
-    echo starting OpenOffice in socket mode
-    su martin -c 'DISPLAY=127.0.0.1:1 ooffice "-accept=socket,host=localhost,port=2002;urp;" -norestore -nolockcheck' &
+    echo starting LibreOffice in socket mode
+    su martin -c 'DISPLAY=127.0.0.1:1 libreoffice "--accept=socket,host=localhost,port=2002;urp;" --norestore --nolockcheck' &
     sleep 15
     echo starting office xmlrpc server
     nohup su martin -c './ooffice_xmlrpc_server.py' &
@@ -20,13 +20,13 @@ case $1 in
     sleep 1
   
     echo stopping OpenOffice 
-    killall soffice
+    killall libreoffice
     sleep 1
     killall soffice.bin 2>/dev/null
   
     sleep 1
     echo stopping Xvnc server
-    killall Xvnc
+    killall Xvnc4
   ;;
 
   restart-rpc)
