@@ -38,6 +38,10 @@ from com.sun.star.awt.FontSlant import NONE
 
 # http://api.openoffice.org/docs/common/ref/com/sun/star/style/CharacterProperties.html
 
+# http://www.openoffice.org/api/docs/common/ref/com/sun/star/awt/FontUnderline.html
+#from com.sun.star.awt.FontUnderline import NONE 
+from com.sun.star.awt.FontUnderline import SINGLE 
+
 from unohelper import systemPathToFileUrl, absolutize
 
 from os import getcwd
@@ -392,6 +396,13 @@ class OOProxy:
         self.cursor.setPropertyValue ( "CharPosture", s )
         return 1
 
+    def set_char_underline(self, underline):
+        u = 0
+        if underline == 'SINGLE':
+            u = SINGLE
+        self.cursor.setPropertyValue ( "CharUnderline", u )
+        return 1
+
     def set_char_height(self, height):
         self.cursor.setPropertyValue( "CharHeight", height )
         return 1
@@ -447,7 +458,7 @@ class OOProxy:
         self.cursor.ParaAdjust = s
         print self.cursor.ParaAdjust
         return 1
-
+# http://flylib.com/books/en/4.290.1.129/1/ -- jevi se, jakoby BLOCK nefungovalo a chovalo se spis jako STRETCH
 
 def start_ooffice():
   # $  ooffice "-accept=socket,host=localhost,port=2002;urp;"
