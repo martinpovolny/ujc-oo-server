@@ -407,6 +407,10 @@ class OOProxy:
         self.cursor.setPropertyValue( "CharHeight", height )
         return 1
 
+    def set_char_font_name(self, font_name):
+        self.cursor.setPropertyValue( "CharFontName", font_name )
+        return 1
+
     def insert_control_character(self,char):
         if char == 'HARD_SPACE':
             c = HARD_SPACE
@@ -427,20 +431,14 @@ class OOProxy:
         return 1
 
     def save_and_close( self, outputfile ):
-        print 1
         cwd = systemPathToFileUrl( getcwd() )
-        print 2
         args = ( makePropertyValue("FilterName","MS Word 97"), )
-        print 3
         destFile = absolutize( cwd, systemPathToFileUrl(outputfile) )
-        print 4
         self.doc.storeAsURL(destFile, args)
-        print 5
         try:
             self.doc.dispose()
         except:
-            print "error"
-        print 6
+            print "error while saving doc"
         return 1
 
     def set_para_style( self, style ):
