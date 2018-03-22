@@ -1,0 +1,32 @@
+[Unit]
+Description=Slovniky LibreOffice Server
+After=network.target
+
+[Service]
+# Foreground process (do not use --daemon in ExecStart or config.rb)
+Type=simple
+
+# Preferably configure a non-privileged user
+User=martin
+
+# The path to the puma application root
+WorkingDirectory=/home/martin/ujc-oo-server/
+
+ExecStart=/usr/bin/vncserver
+
+# Helpful for debugging socket activation, etc.
+
+# The command to start Puma. This variant uses a binstub generated via
+
+Restart=always
+
+# Configures the time to wait for start-up and stop. If a daemon service does not signal start-up completion within
+# the configured time, the service will be considered failed and will be shut down again.
+TimeoutSec=15
+
+# MemoryAccounting=true
+# MemoryHigh=1G
+# MemoryMax=1.1G
+
+[Install]
+WantedBy=multi-user.target
