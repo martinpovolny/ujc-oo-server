@@ -1,10 +1,14 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-import SimpleXMLRPCServer
+#import SimpleXMLRPCServer
+from xmlrpc.server import SimpleXMLRPCServer
+from xmlrpc.server import SimpleXMLRPCRequestHandler
 
-# bootstrap uno component context 	
+# bootstrap uno component context
 import uno
 import unohelper
+
+import uuid
 
 # $  ooffice "-accept=socket,host=localhost,port=2002;urp;"
 
@@ -98,7 +102,7 @@ import uno
 # The ServiceManager of the running OOo.
 # It is cached in a global variable.
 goServiceManager = False
-def getServiceManager( cHost="localhost", cPort="2002" ):
+def getServiceManager( cHost="localhost", cPort="2003" ):
     """Get the ServiceManager from the running OpenOffice.org.
         Then retain it in the global variable goServiceManager for future use.
         This is similar to the GetProcessServiceManager() in OOo Basic.
@@ -356,6 +360,8 @@ def convertToURL( cPathname ):
 #############################################################################################################
 
 class OOProxy:
+    def __init__(self):
+        self.docs = {}
 
     def create_document(self):
         localContext = uno.getComponentContext()
@@ -363,7 +369,7 @@ class OOProxy:
         resolver = localContext.ServiceManager.createInstanceWithContext(
         				"com.sun.star.bridge.UnoUrlResolver", localContext )
         
-        self.smgr = resolver.resolve( "uno:socket,host=localhost,port=2002;urp;StarOffice.ServiceManager" )
+        self.smgr = resolver.resolve( "uno:socket,host=localhost,port=2003;urp;StarOffice.ServiceManager" )
         remoteContext = self.smgr.getPropertyValue( "DefaultContext" )
 
         desktop = self.smgr.createInstanceWithContext( "com.sun.star.frame.Desktop",remoteContext)
@@ -375,13 +381,27 @@ class OOProxy:
         self.text = self.doc.Text
         self.cursor = self.text.createTextCursor()
 
-        return 1
+        doc_id = uuid.uuid1().hex
+        self.docs[doc_id] = {
+            'text':   self.text,
+            'cursor': self.cursor,
+            'doc':    self.doc
+        }
 
-    def set_char_color(self, color):
+        return doc_id
+
+    def setup_locals(self, doc_id):
+        self.text   = self.docs[doc_id]['text']
+        self.doc    = self.docs[doc_id]['doc']
+        self.cursor = self.docs[doc_id]['cursor']
+
+    def set_char_color(self, doc, color):
+        self.setup_locals(doc)
         self.cursor.setPropertyValue( "CharColor", color )
         return 1
 
-    def set_char_weight(self, weight):
+    def set_char_weight(self, doc, weight):
+        self.setup_locals(doc)
         if weight == 'NORMAL':
             w = NORMAL
         if weight == 'BOLD':
@@ -389,29 +409,34 @@ class OOProxy:
         self.cursor.setPropertyValue ( "CharWeight", w )
         return 1
 
-    def set_char_posture(self, slant):
+    def set_char_posture(self, doc, slant):
+        self.setup_locals(doc)
         s = NONE
         if slant == 'ITALIC':
             s = ITALIC
         self.cursor.setPropertyValue ( "CharPosture", s )
         return 1
 
-    def set_char_underline(self, underline):
+    def set_char_underline(self, doc, underline):
+        self.setup_locals(doc)
         u = 0
         if underline == 'SINGLE':
             u = SINGLE
         self.cursor.setPropertyValue ( "CharUnderline", u )
         return 1
 
-    def set_char_height(self, height):
+    def set_char_height(self, doc, height):
+        self.setup_locals(doc)
         self.cursor.setPropertyValue( "CharHeight", height )
         return 1
 
-    def set_char_font_name(self, font_name):
+    def set_char_font_name(self, doc, font_name):
+        self.setup_locals(doc)
         self.cursor.setPropertyValue( "CharFontName", font_name )
         return 1
 
-    def insert_control_character(self,char):
+    def insert_control_character(self, doc, char):
+        self.setup_locals(doc)
         if char == 'HARD_SPACE':
             c = HARD_SPACE
         if char == 'PARAGRAPH_BREAK':
@@ -420,17 +445,20 @@ class OOProxy:
             c = SOFT_HYPHEN
         self.text.insertControlCharacter( self.cursor, c, 0 )
         return 1
-    
-    def set_char_escapement(self,size,offset):
+
+    def set_char_escapement(self, doc, size, offset):
+        self.setup_locals(doc)
         self.cursor.setPropertyValue( "CharEscapement", size )
         self.cursor.setPropertyValue( "CharEscapementHeight", offset )
         return 1
 
-    def put_text( self, text ):
+    def put_text( self, doc, text ):
+        self.setup_locals(doc)
         self.text.insertString( self.cursor, text, 0 );
         return 1
 
-    def save_and_close( self, outputfile ):
+    def save_and_close(self, doc, outputfile):
+        self.setup_locals(doc)
         cwd = systemPathToFileUrl( getcwd() )
         args = ( makePropertyValue("FilterName","MS Word 97"), )
         destFile = absolutize( cwd, systemPathToFileUrl(outputfile) )
@@ -438,15 +466,35 @@ class OOProxy:
         try:
             self.doc.dispose()
         except:
-            print "error while saving doc"
+            print("error while saving doc")
+        del self.docs[doc]
         return 1
 
-    def set_para_style( self, style ):
+    def set_para_style(self, doc, style):
+        self.setup_locals(doc)
+        if (style == 'Default' or style == 'Normal'):
+          style = 'Standard'
+
         self.cursor.ParaStyleName = style
-        print self.cursor.ParaStyleName
+
+        # #print style
+        # #print self.cursor.ParaStyleName
+        # #print self.cursor.getPropertyValue( 'ParaStyleName' )
+
+        # style2 = self.cursor.getPropertyValue( 'ParaStyleName' )
+        # self.text.insertString( self.cursor, style2, 0 );
+
+        # #print "OK"
+        # #self.cursor.setPropertyValue( 'ParaStyleName', style2 )
+        #self.cursor.setPropertyValue( 'ParaStyleName', style )
+
+        # style2 = self.cursor.getPropertyValue( 'ParaStyleName' )
+        # self.text.insertString( self.cursor, style2, 0 );
+        # #self.cursor.setPropertyValue( 'CharStyleName', style )
         return 1
 
-    def set_para_adjust( self, style ):
+    def set_para_adjust(self, doc, style):
+        self.setup_locals(doc)
         if style == 'LEFT':
             s = LEFT
         if style == 'RIGHT':
@@ -454,7 +502,7 @@ class OOProxy:
         if style == 'BLOCK':
             s = BLOCK
         self.cursor.ParaAdjust = s
-        print self.cursor.ParaAdjust
+        print(self.cursor.ParaAdjust)
         return 1
 # http://flylib.com/books/en/4.290.1.129/1/ -- jevi se, jakoby BLOCK nefungovalo a chovalo se spis jako STRETCH
 
@@ -463,9 +511,10 @@ def start_ooffice():
   return 1
 
 def run_xmlrpc_server():
-  port = 1209
+  port = 1210
   oo_proxy = OOProxy()
-  server = SimpleXMLRPCServer.SimpleXMLRPCServer(("localhost", port))
+  #server = SimpleXMLRPCServer.SimpleXMLRPCServer(("localhost", port))
+  server = SimpleXMLRPCServer(("localhost", port))
   server.register_instance(oo_proxy)
   #Go into the main listener loop
   server.serve_forever()
@@ -473,9 +522,9 @@ def run_xmlrpc_server():
 #print "starting ooffice..."
 #start_ooffice()
 
-print "running server..."
+print("running server...")
 run_xmlrpc_server()
 
-print "server exited"
+print("server exited")
 
 # vim: tabstop=4
